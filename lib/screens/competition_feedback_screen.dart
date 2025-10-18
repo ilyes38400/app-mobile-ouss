@@ -6,6 +6,8 @@ import '../extensions/text_styles.dart';
 import '../extensions/app_button.dart';
 import '../utils/app_colors.dart';
 import '../models/competition_feedback_model.dart';
+import '../network/rest_api.dart';
+import '../main.dart';
 
 class CompetitionFeedbackScreen extends StatefulWidget {
   @override
@@ -19,6 +21,7 @@ class _CompetitionFeedbackScreenState extends State<CompetitionFeedbackScreen> {
   // Données du formulaire
   DateTime? _competitionDate;
   String? _competitionName;
+  bool _isSubmitting = false;
 
   // Questions 1-2 (réponses 1 ou 2)
   int? _situationResponse; // 1 = Défi, 2 = Menace
@@ -294,6 +297,8 @@ class _CompetitionFeedbackScreenState extends State<CompetitionFeedbackScreen> {
   }
 
   Future<void> _submitForm() async {
+    if (_isSubmitting) return; // Empêcher les soumissions multiples
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -318,6 +323,7 @@ class _CompetitionFeedbackScreenState extends State<CompetitionFeedbackScreen> {
       return;
     }
 
+    setState(() => _isSubmitting = true);
     _formKey.currentState!.save();
 
     try {
@@ -348,39 +354,57 @@ class _CompetitionFeedbackScreenState extends State<CompetitionFeedbackScreen> {
 
       print("Données du questionnaire structurées: ${request.toJson()}");
 
-      // TODO: Envoyer à l'API Laravel
-      // final response = await submitCompetitionFeedbackApi(request);
-      // if (response.success) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text("Questionnaire enregistré avec succès !"),
-      //       backgroundColor: Colors.green,
-      //     ),
-      //   );
-      //   Navigator.pop(context);
-      // } else {
-      //   throw Exception(response.message);
-      // }
+      // Vérifier que l'utilisateur est connecté
+      if (!userStore.isLoggedIn) {
+        throw Exception("Vous devez être connecté pour enregistrer un questionnaire");
+      }
 
-      // Pour l'instant, simuler le succès
-      await Future.delayed(Duration(milliseconds: 500)); // Simule l'appel API
+      // Envoyer à l'API Laravel
+      final response = await submitCompetitionFeedbackApi(request);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Questionnaire enregistré avec succès !"),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context);
+      if (response.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        throw Exception(response.message);
+      }
 
     } catch (e) {
+      print("Erreur lors de l'enregistrement: $e");
+
+      String errorMessage = "Erreur lors de l'enregistrement";
+
+      // Personnaliser le message d'erreur selon le type d'erreur
+      if (e.toString().contains("Connection")) {
+        errorMessage = "Erreur de connexion. Vérifiez votre connexion internet.";
+      } else if (e.toString().contains("timeout")) {
+        errorMessage = "Délai d'attente dépassé. Veuillez réessayer.";
+      } else if (e.toString().contains("401")) {
+        errorMessage = "Session expirée. Veuillez vous reconnecter.";
+      } else if (e.toString().contains("403")) {
+        errorMessage = "Accès refusé. Vérifiez vos permissions.";
+      } else if (e.toString().contains("422")) {
+        errorMessage = "Données invalides. Vérifiez vos réponses.";
+      } else if (e.toString().contains("500")) {
+        errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Erreur lors de l'enregistrement: $e"),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -520,9 +544,31 @@ class _CompetitionFeedbackScreenState extends State<CompetitionFeedbackScreen> {
                       width: double.infinity,
                       margin: EdgeInsets.all(16),
                       child: AppButton(
-                        text: "Enregistrer le questionnaire",
-                        onTap: _submitForm,
-                        color: primaryColor,
+                        text: _isSubmitting
+                            ? "Enregistrement en cours..."
+                            : "Enregistrer le questionnaire",
+                        onTap: _isSubmitting ? null : _submitForm,
+                        color: _isSubmitting ? Colors.grey : primaryColor,
+                        child: _isSubmitting
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    "Enregistrement en cours...",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              )
+                            : null,
                       ),
                     ),
 

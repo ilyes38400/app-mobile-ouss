@@ -55,6 +55,7 @@ import '../models/workout_log_model.dart';
 import '../models/workout_response.dart';
 import '../models/workout_type_response.dart';
 import '../models/goal_achievement_response.dart';
+import '../models/competition_feedback_model.dart';
 import '../utils/app_config.dart';
 import '../utils/app_constants.dart';
 import 'network_utils.dart';
@@ -799,4 +800,66 @@ Future<Map<String, dynamic>> purchaseMentalProgramApi(int programId) async {
       method: HttpMethod.POST,
     ),
   );
+}
+
+// ==================== Competition Feedback API ====================
+
+/// Créer un questionnaire de retour de compétition
+Future<CompetitionFeedbackResponse> submitCompetitionFeedbackApi(CompetitionFeedbackRequest request) async {
+  final response = await buildHttpResponse(
+    'competition-feedback',
+    request: request.toJson(),
+    method: HttpMethod.POST,
+  );
+
+  return CompetitionFeedbackResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Récupérer la liste des questionnaires de retour de compétition
+Future<CompetitionFeedbackListResponse> getCompetitionFeedbackListApi({int page = 1}) async {
+  final response = await buildHttpResponse(
+    'competition-feedback?page=$page',
+    method: HttpMethod.GET,
+  );
+
+  return CompetitionFeedbackListResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Récupérer un questionnaire de retour de compétition spécifique
+Future<CompetitionFeedbackResponse> getCompetitionFeedbackApi(int id) async {
+  final response = await buildHttpResponse(
+    'competition-feedback/$id',
+    method: HttpMethod.GET,
+  );
+
+  return CompetitionFeedbackResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Modifier un questionnaire de retour de compétition
+Future<CompetitionFeedbackResponse> updateCompetitionFeedbackApi(int id, CompetitionFeedbackRequest request) async {
+  final response = await buildHttpResponse(
+    'competition-feedback/$id',
+    request: request.toJson(),
+    method: HttpMethod.PUT,
+  );
+
+  return CompetitionFeedbackResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Supprimer un questionnaire de retour de compétition
+Future<Map<String, dynamic>> deleteCompetitionFeedbackApi(int id) async {
+  final response = await buildHttpResponse(
+    'competition-feedback/$id',
+    method: HttpMethod.DELETE,
+  );
+
+  return await handleResponse(response);
 }
