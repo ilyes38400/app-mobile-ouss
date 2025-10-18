@@ -40,6 +40,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_common.dart';
 import '../utils/app_images.dart';
 import 'WeeklyQuestionnaireScreen.dart';
+import 'competition_feedback_screen.dart';
 import 'home_weight_section.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -483,13 +484,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
-                                "Bientôt disponible",
+                                "Évaluez votre performance en compétition",
                                 style: TextStyle(color: Colors.white70),
                               ),
-                              trailing: Icon(Icons.lock, color: Colors.white70),
+                              trailing: Icon(Icons.arrow_forward_ios, color: Colors.white),
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Fonctionnalité en développement")),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CompetitionFeedbackScreen(),
+                                  ),
                                 );
                               },
                             ),
