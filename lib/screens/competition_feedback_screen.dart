@@ -369,7 +369,9 @@ class _CompetitionFeedbackScreenState extends State<CompetitionFeedbackScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+
+        // Retourner à l'accueil (supprimer toutes les routes jusqu'à l'accueil)
+        Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         throw Exception(response.message);
       }
