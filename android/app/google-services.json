@@ -1,0 +1,99 @@
+{
+  "project_info": {
+    "project_number": "93921022433",
+    "project_id": "myfitnessapp-e3afc",
+    "storage_bucket": "myfitnessapp-e3afc.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93921022433:android:d3289c6c2a4877aba602a0",
+        "android_client_info": {
+          "package_name": "com.mfa.myfitnessapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "93921022433-cpugm4j3ulqp5lhoeie7231a553qdeom.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mfa.myfitnessapp",
+            "certificate_hash": "2f526d0362b08b5c5fad2dfc96c4f8b2bac0cf04"
+          }
+        },
+        {
+          "client_id": "93921022433-vmus9o76h0s2pi9munu1mukvljo4ducd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-F876IiUmPWNV6zJ3EYLax8P-jcpWQTw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "93921022433-vmus9o76h0s2pi9munu1mukvljo4ducd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "93921022433-k3con4icabn8qdncljgdtdvqdlnoadl6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mfa.myfitnessapp"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-6057052085798007~4329974003"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93921022433:android:8133f3f736785770a602a0",
+        "android_client_info": {
+          "package_name": "com.myfitnessapp.france"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "93921022433-sspi1prhcle1vrpge2vsrcs48dri0riu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.myfitnessapp.france",
+            "certificate_hash": "2f526d0362b08b5c5fad2dfc96c4f8b2bac0cf04"
+          }
+        },
+        {
+          "client_id": "93921022433-vmus9o76h0s2pi9munu1mukvljo4ducd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-F876IiUmPWNV6zJ3EYLax8P-jcpWQTw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "93921022433-vmus9o76h0s2pi9munu1mukvljo4ducd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "93921022433-k3con4icabn8qdncljgdtdvqdlnoadl6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mfa.myfitnessapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
