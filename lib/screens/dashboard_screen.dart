@@ -33,7 +33,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int mCurrentIndex = 0;
 
   @override
   void initState() {
@@ -115,16 +114,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onProfileTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()));
         },
-        // clic sur les cards :
-        onWorkoutTap: () => setState(() => mCurrentIndex = 1),
-        onDietTap:    () => setState(() => mCurrentIndex = 2),
-        onMentalTap:  () => setState(() => mCurrentIndex = 3),
-        onProgressTap: () => setState(() => mCurrentIndex = 4),
+        // Navigations vers les autres screens en mode push
+        onWorkoutTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => WorkoutListScreen()));
+        },
+        onDietTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => DietScreen()));
+        },
+        onMentalTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => MentalPreparationListScreen()));
+        },
+        onProgressTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => WeeklyProgressScreen()));
+        },
       ),
-      WorkoutListScreen(),
-      DietScreen(),
-      MentalPreparationListScreen(),
-      WeeklyProgressScreen(),
     ];
 
     return Scaffold(
@@ -134,45 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           backgroundColor: appStore.isDarkMode ? cardDarkColor : primaryOpacity,
           content: Text('Appuyez à nouveau pour quitter', style: primaryTextStyle()),
         ),
-        child: AnimatedContainer(
-          color: context.cardColor,
-          duration: const Duration(seconds: 1),
-          child: IndexedStack(index: mCurrentIndex, children: tabs),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: mCurrentIndex,
-        unselectedItemColor: Colors.grey,
-        selectedItemColor: primaryColor,
-        onTap: (i) => setState(() => mCurrentIndex = i),
-        items: [
-          BottomNavigationBarItem(
-            icon: Image.asset(ic_home_outline, height: 24, color: Colors.grey),
-            activeIcon: Image.asset(ic_home_fill,   height: 24, color: primaryColor),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center_outlined, size: 24, color: Colors.grey),
-            activeIcon: Icon(Icons.fitness_center,         size: 24, color: primaryColor),
-            label: 'Workouts',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset(ic_diet_outline, height: 24, color: Colors.grey),
-            activeIcon: Image.asset(ic_diet_fill,    height: 24, color: primaryColor),
-            label: 'Nutrition',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.self_improvement_outlined, size: 24, color: Colors.grey),
-            activeIcon: Icon(Icons.self_improvement,          size: 24, color: primaryColor),
-            label: 'Mental',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.show_chart_outlined, size: 24, color: Colors.grey),
-            activeIcon: Icon(Icons.show_chart, size: 24, color: primaryColor),
-            label: 'Progrès',
-          ),
-        ],
+        child: tabs[0], // Affiche seulement l'accueil
       ),
     );
   }

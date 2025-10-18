@@ -32,8 +32,6 @@ import '../extensions/common.dart';
 import '../extensions/horizontal_list.dart';
 import '../extensions/text_styles.dart';
 import '../main.dart';
-import '../models/goal_challenge_response.dart';
-import '../models/goal_achievement_response.dart';
 import '../models/home_information_model.dart';
 import '../network/rest_api.dart';
 import '../extensions/LiveStream.dart';
@@ -70,27 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<DateTime> workoutDates = [];
 
 
-  bool _objectivesExpanded = false;
-  bool _isExpandedPhysique = true;
-  bool _isExpandedAlimentaire = true;
-  bool _isExpandedMental = true;
-  Map<int, int> achievementIds = {};
-
-
-
   bool _shouldShowWeeklyCard = false;
-
-
-  final Map<int, bool> _donePhysique    = {};
-  final Map<int, bool> _doneAlimentaire = {};
-  final Map<int, bool> _doneMental      = {};
-  
-  // Stockage des IDs d'achievements pour pouvoir les supprimer
-  final Map<int, int> _achievementIds = {}; // goalId -> achievementId
-
-  late Future<GoalChallengeResponse> _futurePhysique;
-  late Future<GoalChallengeResponse> _futureAlimentaire;
-  late Future<GoalChallengeResponse> _futureMental;
 
   late Future<HomeInformationModel> _futureHomeInfo;
   VideoPlayerController? _videoPlayerController;
@@ -100,10 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     userStore.loadUserProfile();
-    _futurePhysique    = getGoalChallengesApi(theme: "physique");
-    _futureAlimentaire = getGoalChallengesApi(theme: "alimentaire");
-    _futureMental      = getGoalChallengesApi(theme: "mental");
-    // **NOUVEAU** appel de l'API home-information
     _futureHomeInfo    = getHomeInformationApi();
 
     _searchController.addListener(() {
@@ -111,11 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     fetchWorkoutLogs();
     _checkWeeklyQuestionnaireVisibility();
-    
-    // Charger les achievements existants après un délai pour laisser les futures se charger
-    Future.delayed(Duration(milliseconds: 500), () {
-      loadExistingAchievements();
-    });
 
   }
 
@@ -139,133 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> loadExistingAchievements() async {
-    try {
-
-      final achievements = await getGoalAchievementsApi();
-
-
-      final achievementsList = achievements.data!;
-
-      for (final achievement in achievementsList) {
-        final goalId = achievement.goalChallengeId;
-        final achievementId = achievement.id;
-
-
-        // Stocker l'ID de l'achievement
-        achievementIds[goalId] = achievementId;
-        sharedPreferences.setInt("achievement_${goalId}", achievementId);
-
-        // NOUVEAU: Mettre à jour l'état des checkboxes selon le type d'objectif
-        final goalType = achievement.goalType;
-        switch (goalType) {
-          case 'physique':
-            _donePhysique[goalId] = true;
-            sharedPreferences.setBool("physique_${goalId}", true);
-            print("✅ DEBUG: Objectif physique $goalId marqué comme accompli");
-            break;
-          case 'alimentaire':
-            _doneAlimentaire[goalId] = true;
-            sharedPreferences.setBool("alimentaire_${goalId}", true);
-            print("✅ DEBUG: Objectif alimentaire $goalId marqué comme accompli");
-            break;
-          case 'mental':
-            _doneMental[goalId] = true;
-            sharedPreferences.setBool("mental_${goalId}", true);
-            print("✅ DEBUG: Objectif mental $goalId marqué comme accompli");
-            break;
-          default:
-            print("⚠️ WARNING: Type d'objectif inconnu: $goalType pour goal $goalId");
-            break;
-        }
-      }
-
-      // Forcer la mise à jour de l'interface
-      if (mounted) {
-        setState(() {});
-      }
-
-    } catch (e, stackTrace) {
-
-    }
-  }
-
-  Future<void> _toggleGoalAchievement(int goalId, String themeKey, Map<int, bool> doneMap, bool newValue) async {
-    // Mettre à jour l'interface immédiatement pour une meilleure UX
-    final previousValue = doneMap[goalId] ?? false;
-    doneMap[goalId] = newValue;
-    sharedPreferences.setBool("${themeKey}_$goalId", newValue);
-    setState(() {});
-    
-    try {
-      if (newValue) {
-        // Marquer comme accompli via l'API et stocker l'achievement ID
-        final response = await markGoalAsAchievedApi(goalChallengeId: goalId);
-        if (response.achievementId != null) {
-          _achievementIds[goalId] = response.achievementId!;
-          // Optionnel: sauvegarder l'ID dans SharedPreferences pour persistance
-          sharedPreferences.setInt("achievement_${goalId}", response.achievementId!);
-        }
-        print("Objectif $goalId marqué comme accompli (Achievement ID: ${response.achievementId})");
-        
-        // NOUVEAU: Notifier le rafraîchissement des statistiques
-        _notifyStatsRefresh();
-      } else {
-        // Décocher l'objectif - supprimer l'achievement via l'API
-        print("🔍 DEBUG: Tentative de suppression pour goal $goalId");
-        print("🔍 DEBUG: _achievementIds = ${_achievementIds.toString()}");
-        
-        final achievementIdFromMemory = _achievementIds[goalId];
-        final achievementIdFromPrefs = sharedPreferences.getInt("achievement_${goalId}");
-        final achievementId = achievementIdFromMemory ?? achievementIdFromPrefs;
-        
-        print("🔍 DEBUG: Achievement ID depuis mémoire: $achievementIdFromMemory");
-        print("🔍 DEBUG: Achievement ID depuis prefs: $achievementIdFromPrefs");
-        print("🔍 DEBUG: Achievement ID final: $achievementId");
-        
-        if (achievementId != null) {
-          print("🔄 Suppression de l'achievement $achievementId via l'API...");
-          await deleteGoalAchievementApi(achievementId);
-          _achievementIds.remove(goalId);
-          sharedPreferences.remove("achievement_${goalId}");
-          print("✅ Objectif $goalId décoché - supprimé de l'API (Achievement ID: $achievementId)");
-          
-          // NOUVEAU: Notifier le rafraîchissement des statistiques
-          _notifyStatsRefresh();
-        } else {
-          print("❌ Objectif $goalId décoché mais aucun Achievement ID trouvé");
-        }
-      }
-      
-    } catch (e) {
-      // En cas d'erreur, revenir à l'état précédent
-      print("Erreur lors de la validation de l'objectif: $e");
-      doneMap[goalId] = previousValue;
-      sharedPreferences.setBool("${themeKey}_$goalId", previousValue);
-      setState(() {});
-      
-      // Optionnel: afficher un message d'erreur à l'utilisateur
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Erreur lors de la synchronisation de l'objectif"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-  
-  // Nouvelle méthode pour notifier le rafraîchissement des statistiques
-  void _notifyStatsRefresh() {
-    // Utiliser LiveStream pour notifier les composants de statistiques
-    LiveStream().emit('GOAL_STATS_REFRESH', true);
-    print("📊 Notification de rafraîchissement des statistiques envoyée");
-    
-    // Ajouter un délai pour s'assurer que les composants sont prêts
-    Future.delayed(Duration(milliseconds: 500), () {
-      LiveStream().emit('GOAL_STATS_REFRESH', true);
-      print("📊 Notification de rafraîchissement des statistiques (délai) envoyée");
-    });
-  }
 
   Widget _sectionTitle(String title) {
     return Padding(
@@ -427,340 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
-  Color _headerColor(String theme) {
-    switch (theme) {
-      case 'physique':    return Color(0xFF0D47A1);
-      case 'alimentaire': return Color(0xFF1565C0);
-      case 'mental':      return Color(0xFF1976D2);
-      default:            return primaryColor;
-    }
-  }
-
-
-  Widget buildGlobalObjectivesCard() {
-    Widget buildSection({
-      required String emoji,
-      required String title,
-      required Future<GoalChallengeResponse> future,
-      required Map<int, bool> doneMap,
-      required String themeKey,
-      required bool showDetails,
-      required Color barColor,
-    }) {
-      return FutureBuilder<GoalChallengeResponse>(
-        future: future,
-        builder: (_, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.white24,
-                color: barColor,
-                minHeight: 6,
-              ),
-            );
-          }
-
-          final list = snap.data?.data ?? [];
-          for (var g in list) {
-            doneMap[g.id] = doneMap[g.id] ?? (sharedPreferences.getBool("${themeKey}_${g.id}") ?? false);
-          }
-          final doneCount = doneMap.values.where((v) => v).length;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Titre + Barre
-              Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 4),
-                child: Row(
-                  children: [
-                    Text("$emoji $title", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Spacer(),
-                    Text("$doneCount / ${list.length}", style: TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              ),
-              LinearProgressIndicator(
-                value: list.isEmpty ? 0.0 : doneCount / list.length,
-                backgroundColor: Colors.white24,
-                color: barColor,
-                minHeight: 6,
-              ),
-              // Objectifs détaillés si déplié
-              if (_objectivesExpanded && showDetails) ...[
-                SizedBox(height: 12),
-                ...list.map((g) => Column(
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        g.title,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        g.description.replaceAll(RegExp(r"<[^>]*>"), "").trim(),
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      trailing: Checkbox(
-                        value: doneMap[g.id],
-                        onChanged: (v) {
-                          final nv = v ?? false;
-                          _toggleGoalAchievement(g.id, themeKey, doneMap, nv);
-                        },
-                        shape: CircleBorder(),
-                        checkColor: Colors.white,
-                        fillColor: MaterialStateProperty.resolveWith<Color>(
-                              (states) => states.contains(MaterialState.selected)
-                              ? barColor
-                              : Colors.white,
-                        ),
-                      ),
-                      onTap: () {
-                        final nv = !doneMap[g.id]!;
-                        _toggleGoalAchievement(g.id, themeKey, doneMap, nv);
-                      },
-                    ),
-                    if (g != list.last) Divider(color: Colors.white12),
-                  ],
-                )),
-              ]
-            ],
-          );
-        },
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Color(0xFF142448),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Mes Objectifs", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-
-          // Les 3 sections
-          buildSection(
-            emoji: "🏋️‍♂️",
-            title: "Physique",
-            future: _futurePhysique,
-            doneMap: _donePhysique,
-            themeKey: "physique",
-            showDetails: true,
-            barColor: Color(0xFF0D47A1),
-          ),
-          buildSection(
-            emoji: "🥦",
-            title: "Alimentaire",
-            future: _futureAlimentaire,
-            doneMap: _doneAlimentaire,
-            themeKey: "alimentaire",
-            showDetails: true,
-            barColor: Color(0xFF1565C0),
-          ),
-          buildSection(
-            emoji: "🧠",
-            title: "Mental",
-            future: _futureMental,
-            doneMap: _doneMental,
-            themeKey: "mental",
-            showDetails: true,
-            barColor: Color(0xFF1976D2),
-          ),
-
-          // Bouton Voir/Masquer
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
-              onPressed: () {
-                setState(() => _objectivesExpanded = !_objectivesExpanded);
-              },
-              icon: Icon(
-                _objectivesExpanded ? Icons.expand_less : Icons.expand_more,
-                color: Colors.white,
-              ),
-              label: Text(
-                _objectivesExpanded ? "Masquer les objectifs" : "Voir les objectifs",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(
-      String title,
-      Future<GoalChallengeResponse> future,
-      Map<int, bool> doneMap,
-      String themeKey,
-      bool isExpanded,
-      VoidCallback toggle,
-      ) {
-    final headerColor = _headerColor(themeKey);
-
-    return FutureBuilder<GoalChallengeResponse>(
-      future: future,
-      builder: (_, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return Center(child: Loader()).paddingAll(16);
-        }
-
-        final list = snap.data?.data ?? [];
-        if (list.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text("Aucun défi $title", style: TextStyle(color: Colors.white)),
-          );
-        }
-
-        for (var g in list) {
-          doneMap[g.id] = doneMap[g.id] ?? (sharedPreferences.getBool("${themeKey}_${g.id}") ?? false);
-        }
-
-        final doneCount = doneMap.values.where((v) => v).length;
-
-        Widget buildGoalItem(var g) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    g.title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                  subtitle: Text(
-                    g.description.replaceAll(RegExp(r"<[^>]*>"), "").trim(),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  trailing: Checkbox(
-                    value: doneMap[g.id],
-                    onChanged: (v) {
-                      final nv = v ?? false;
-                      _toggleGoalAchievement(g.id, themeKey, doneMap, nv);
-                    },
-                    shape: CircleBorder(),
-                    checkColor: Colors.white,
-                    fillColor: MaterialStateProperty.resolveWith<Color>(
-                          (states) => states.contains(MaterialState.selected) ? headerColor : Colors.white,
-                    ),
-                  ),
-                  onTap: () {
-                    final nv = !doneMap[g.id]!;
-                    _toggleGoalAchievement(g.id, themeKey, doneMap, nv);
-                  },
-                ),
-              ),
-              if (g != list.last) Divider(color: Colors.white12),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isExpanded) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
-                child: Row(
-                  children: [
-                    Text(
-                      "Objectifs $title",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Spacer(),
-                    Text(
-                      "$doneCount/${list.length}",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: LinearProgressIndicator(
-                  value: doneCount / list.length,
-                  backgroundColor: Colors.grey.shade800,
-                  color: headerColor,
-                  minHeight: 6,
-                ),
-              ),
-              Center(
-                child: TextButton.icon(
-                  onPressed: toggle,
-                  icon: Icon(Icons.expand_more, color: Colors.white),
-                  label: Text("Voir les objectifs", style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ] else ...[
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color(0xFF142448),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Titre + barre dans la carte
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Objectifs $title",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16),
-                          ),
-                          SizedBox(height: 6),
-                          LinearProgressIndicator(
-                            value: doneCount / list.length,
-                            backgroundColor: Colors.grey.shade800,
-                            color: headerColor,
-                            minHeight: 6,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    ...list.map(buildGoalItem).toList(),
-
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: toggle,
-                        icon: Icon(Icons.expand_less, color: Colors.white),
-                        label: Text("Réduire", style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        );
-      },
-    );
-  }
 
 
 
@@ -915,213 +423,131 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
 
-                    if (_shouldShowWeeklyCard)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                        child: Card(
-                          color: Color(0xFF263238),
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.all(16),
-                            leading: Icon(Icons.edit_note, color: Colors.white),
-                            title: Text(
-                              "Remplir le questionnaire hebdo",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              "5 minutes pour répondre au questionnaire",
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            trailing: Icon(Icons.arrow_forward_ios, color: Colors.white),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => WeeklyQuestionnaireScreen(),
-                                ),
-                              ).then((_) => _checkWeeklyQuestionnaireVisibility()); // refresh au retour
-                            },
-                          ),
-                        ),
-                      ),
-
-                    // Card pour voir les progrès
+                    // Section Questionnaires
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                      child: Card(
-                        color: Color(0xFF4CAF50), // Vert moderne
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.all(16),
-                          leading: Icon(Icons.show_chart, color: Colors.white),
-                          title: Text(
-                            "Voir mes progrès",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            "Suivez votre évolution et vos statistiques",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          trailing: Icon(Icons.arrow_forward_ios, color: Colors.white),
-                          onTap: widget.onProgressTap,
-                        ),
-                      ),
-                    ),
-
-                    buildGlobalObjectivesCard(),
-
-
-                    20.height,
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xFF1C1C1E),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Présentation du mois",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: AspectRatio(
-                                aspectRatio: 16 / 9,
-                                child: _buildHomeVideoSection(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    20.height,
-                    _sectionTitle("Votre parcours forme"),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            "Questionnaires",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+
+                          // Questionnaire hebdomadaire
+                          if (_shouldShowWeeklyCard)
+                            Card(
+                              color: Color(0xFF263238),
+                              elevation: 3,
+                              margin: EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.all(16),
+                                leading: Icon(Icons.edit_note, color: Colors.white),
+                                title: Text(
+                                  "Questionnaire bien-être hebdomadaire",
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(
+                                  "Évaluez votre bien-être de la semaine",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                trailing: Icon(Icons.arrow_forward_ios, color: Colors.white),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => WeeklyQuestionnaireScreen(),
+                                    ),
+                                  ).then((_) => _checkWeeklyQuestionnaireVisibility());
+                                },
+                              ),
+                            ),
+
+                          // Placeholder pour futurs questionnaires
                           Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            clipBehavior: Clip.hardEdge,
-                            child: InkWell(
-                              onTap: widget.onWorkoutTap,
-                              child: Stack(
-                                children: [
-                                  Image.asset(
-                                    'assets/background-workout.png',
-                                    width: double.infinity,
-                                    height: 185,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  mBlackEffect(context.width() - 32, 185, radiusValue: 16),
-                                  Positioned.fill(
-                                    child: Center(
-                                      child: Text(
-                                        "Workouts",
-                                        style: boldTextStyle(color: Colors.white, size: 18),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            color: Color(0xFF1565C0),
+                            elevation: 3,
+                            margin: EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.all(16),
+                              leading: Icon(Icons.assignment, color: Colors.white),
+                              title: Text(
+                                "Questionnaire retour de compétition",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
+                              subtitle: Text(
+                                "Bientôt disponible",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              trailing: Icon(Icons.lock, color: Colors.white70),
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Fonctionnalité en développement")),
+                                );
+                              },
                             ),
                           ),
-                          16.height,
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Card(
-                                  elevation: 4,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  clipBehavior: Clip.hardEdge,
-                                  child: InkWell(
-                                    onTap: widget.onDietTap,
-                                    child: Stack(
-                                      children: [
-                                        Image.asset(
-                                          'assets/background-nutri.jpg',
-                                          width: double.infinity,
-                                          height: 140,
-                                          fit: BoxFit.cover,
-                                        ),
-                                        mBlackEffect(context.width() / 2 - 24, 140, radiusValue: 16),
-                                        Positioned.fill(
-                                          child: Center(
-                                            child: Text(
-                                              "Nutrition",
-                                              style: boldTextStyle(color: Colors.white, size: 16),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+
+                          Card(
+                            color: Color(0xFF388E3C),
+                            elevation: 3,
+                            margin: EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.all(16),
+                              leading: Icon(Icons.book, color: Colors.white),
+                              title: Text(
+                                "Carnet d'entraînement mensuel",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Card(
-                                  elevation: 4,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  clipBehavior: Clip.hardEdge,
-                                  child: InkWell(
-                                    onTap: widget.onMentalTap,
-                                    child: Stack(
-                                      children: [
-                                        Image.asset(
-                                          'assets/background-mental.jpg',
-                                          width: double.infinity,
-                                          height: 140,
-                                          fit: BoxFit.cover,
-                                        ),
-                                        mBlackEffect(context.width() / 2 - 24, 140, radiusValue: 16),
-                                        Positioned.fill(
-                                          child: Center(
-                                            child: Text(
-                                              "Mental",
-                                              style: boldTextStyle(color: Colors.white, size: 16),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                              subtitle: Text(
+                                "Objectifs techniques, tactiques, physiques et mentaux",
+                                style: TextStyle(color: Colors.white70),
                               ),
-                            ],
+                              trailing: Icon(Icons.lock, color: Colors.white70),
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Fonctionnalité en développement")),
+                                );
+                              },
+                            ),
                           ),
-                          20.height,
+
+                          Card(
+                            color: Color(0xFF7B1FA2),
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.all(16),
+                              leading: Icon(Icons.star, color: Colors.white),
+                              title: Text(
+                                "Questionnaire d'accomplissement mensuel",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                "Évaluez votre satisfaction mensuelle",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              trailing: Icon(Icons.lock, color: Colors.white70),
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Fonctionnalité en développement")),
+                                );
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
+
+                    20.height,
                   ],
                 ),
               ),
