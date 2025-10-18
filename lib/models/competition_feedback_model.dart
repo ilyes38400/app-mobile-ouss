@@ -66,26 +66,47 @@ class CompetitionFeedbackRequest {
   }
 
   factory CompetitionFeedbackRequest.fromJson(Map<String, dynamic> json) {
+    // Helper function to safely parse numeric values from string or number
+    double _parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? defaultValue;
+      }
+      return defaultValue;
+    }
+
+    int _parseInt(dynamic value, int defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        return int.tryParse(value) ?? defaultValue;
+      }
+      return defaultValue;
+    }
+
     return CompetitionFeedbackRequest(
-      competitionName: json['competition_name'] ?? '',
+      competitionName: json['competition_name']?.toString() ?? '',
       competitionDate: DateTime.parse(json['competition_date']),
-      situationResponse: json['situation_response'] ?? 1,
-      victoryResponse: json['victory_response'] ?? 1,
-      difficultyLevel: (json['difficulty_level'] as num?)?.toDouble() ?? 5.0,
-      motivation: (json['motivation'] as num?)?.toDouble() ?? 5.0,
-      focus: (json['focus'] as num?)?.toDouble() ?? 5.0,
-      negativeFocus: (json['negative_focus'] as num?)?.toDouble() ?? 5.0,
-      mentalPresence: (json['mental_presence'] as num?)?.toDouble() ?? 5.0,
-      clearObjective: json['clear_objective'] ?? '',
-      physicalSensations: (json['physical_sensations'] as num?)?.toDouble() ?? 5.0,
-      emotionalStability: (json['emotional_stability'] as num?)?.toDouble() ?? 5.0,
-      stressTension: (json['stress_tension'] as num?)?.toDouble() ?? 5.0,
-      decisionMaking: (json['decision_making'] as num?)?.toDouble() ?? 5.0,
-      competitionEntry: (json['competition_entry'] as num?)?.toDouble() ?? 5.0,
-      maximumEffort: (json['maximum_effort'] as num?)?.toDouble() ?? 5.0,
-      automaticity: (json['automaticity'] as num?)?.toDouble() ?? 5.0,
-      idealSelfRating: (json['ideal_self_rating'] as num?)?.toDouble() ?? 5.0,
-      performanceComment: json['performance_comment'],
+      situationResponse: _parseInt(json['situation_response'], 1),
+      victoryResponse: _parseInt(json['victory_response'], 1),
+      difficultyLevel: _parseDouble(json['difficulty_level'], 5.0),
+      motivation: _parseDouble(json['motivation'], 5.0),
+      focus: _parseDouble(json['focus'], 5.0),
+      negativeFocus: _parseDouble(json['negative_focus'], 5.0),
+      mentalPresence: _parseDouble(json['mental_presence'], 5.0),
+      clearObjective: json['clear_objective']?.toString() ?? '',
+      physicalSensations: _parseDouble(json['physical_sensations'], 5.0),
+      emotionalStability: _parseDouble(json['emotional_stability'], 5.0),
+      stressTension: _parseDouble(json['stress_tension'], 5.0),
+      decisionMaking: _parseDouble(json['decision_making'], 5.0),
+      competitionEntry: _parseDouble(json['competition_entry'], 5.0),
+      maximumEffort: _parseDouble(json['maximum_effort'], 5.0),
+      automaticity: _parseDouble(json['automaticity'], 5.0),
+      idealSelfRating: _parseDouble(json['ideal_self_rating'], 5.0),
+      performanceComment: json['performance_comment']?.toString(),
     );
   }
 }
@@ -181,24 +202,45 @@ class CompetitionFeedbackScores {
   });
 
   factory CompetitionFeedbackScores.fromJson(Map<String, dynamic> json) {
+    // Helper function to safely parse numeric values from string or number
+    double _parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? defaultValue;
+      }
+      return defaultValue;
+    }
+
+    int _parseInt(dynamic value, int defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        return int.tryParse(value) ?? defaultValue;
+      }
+      return defaultValue;
+    }
+
     return CompetitionFeedbackScores(
-      situationResponse: json['situation_response'] ?? 1,
-      victoryResponse: json['victory_response'] ?? 1,
-      difficultyLevel: (json['difficulty_level'] as num?)?.toDouble() ?? 5.0,
-      motivation: (json['motivation'] as num?)?.toDouble() ?? 5.0,
-      focus: (json['focus'] as num?)?.toDouble() ?? 5.0,
-      negativeFocus: (json['negative_focus'] as num?)?.toDouble() ?? 5.0,
-      mentalPresence: (json['mental_presence'] as num?)?.toDouble() ?? 5.0,
-      clearObjective: json['clear_objective'] ?? '',
-      physicalSensations: (json['physical_sensations'] as num?)?.toDouble() ?? 5.0,
-      emotionalStability: (json['emotional_stability'] as num?)?.toDouble() ?? 5.0,
-      stressTension: (json['stress_tension'] as num?)?.toDouble() ?? 5.0,
-      decisionMaking: (json['decision_making'] as num?)?.toDouble() ?? 5.0,
-      competitionEntry: (json['competition_entry'] as num?)?.toDouble() ?? 5.0,
-      maximumEffort: (json['maximum_effort'] as num?)?.toDouble() ?? 5.0,
-      automaticity: (json['automaticity'] as num?)?.toDouble() ?? 5.0,
-      idealSelfRating: (json['ideal_self_rating'] as num?)?.toDouble() ?? 5.0,
-      performanceComment: json['performance_comment'],
+      situationResponse: _parseInt(json['situation_response'], 1),
+      victoryResponse: _parseInt(json['victory_response'], 1),
+      difficultyLevel: _parseDouble(json['difficulty_level'], 5.0),
+      motivation: _parseDouble(json['motivation'], 5.0),
+      focus: _parseDouble(json['focus'], 5.0),
+      negativeFocus: _parseDouble(json['negative_focus'], 5.0),
+      mentalPresence: _parseDouble(json['mental_presence'], 5.0),
+      clearObjective: json['clear_objective']?.toString() ?? '',
+      physicalSensations: _parseDouble(json['physical_sensations'], 5.0),
+      emotionalStability: _parseDouble(json['emotional_stability'], 5.0),
+      stressTension: _parseDouble(json['stress_tension'], 5.0),
+      decisionMaking: _parseDouble(json['decision_making'], 5.0),
+      competitionEntry: _parseDouble(json['competition_entry'], 5.0),
+      maximumEffort: _parseDouble(json['maximum_effort'], 5.0),
+      automaticity: _parseDouble(json['automaticity'], 5.0),
+      idealSelfRating: _parseDouble(json['ideal_self_rating'], 5.0),
+      performanceComment: json['performance_comment']?.toString(),
     );
   }
 
