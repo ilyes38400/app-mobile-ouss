@@ -56,6 +56,7 @@ import '../models/workout_response.dart';
 import '../models/workout_type_response.dart';
 import '../models/goal_achievement_response.dart';
 import '../models/competition_feedback_model.dart';
+import '../models/training_log_model.dart';
 import '../utils/app_config.dart';
 import '../utils/app_constants.dart';
 import 'network_utils.dart';
@@ -858,6 +859,68 @@ Future<CompetitionFeedbackResponse> updateCompetitionFeedbackApi(int id, Competi
 Future<Map<String, dynamic>> deleteCompetitionFeedbackApi(int id) async {
   final response = await buildHttpResponse(
     'competition-feedback/$id',
+    method: HttpMethod.DELETE,
+  );
+
+  return await handleResponse(response);
+}
+
+// ==================== Training Log API ====================
+
+/// Créer un carnet d'entraînement
+Future<TrainingLogResponse> submitTrainingLogApi(TrainingLogRequest request) async {
+  final response = await buildHttpResponse(
+    'training-logs',
+    request: request.toJson(),
+    method: HttpMethod.POST,
+  );
+
+  return TrainingLogResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Récupérer la liste des carnets d'entraînement
+Future<TrainingLogListResponse> getTrainingLogListApi({int page = 1}) async {
+  final response = await buildHttpResponse(
+    'training-logs?page=$page',
+    method: HttpMethod.GET,
+  );
+
+  return TrainingLogListResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Récupérer un carnet d'entraînement spécifique
+Future<TrainingLogResponse> getTrainingLogApi(int id) async {
+  final response = await buildHttpResponse(
+    'training-logs/$id',
+    method: HttpMethod.GET,
+  );
+
+  return TrainingLogResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Modifier un carnet d'entraînement
+Future<TrainingLogResponse> updateTrainingLogApi(int id, TrainingLogRequest request) async {
+  final response = await buildHttpResponse(
+    'training-logs/$id',
+    request: request.toJson(),
+    method: HttpMethod.PUT,
+  );
+
+  return TrainingLogResponse.fromJson(
+    await handleResponse(response),
+  );
+}
+
+/// Supprimer un carnet d'entraînement
+Future<Map<String, dynamic>> deleteTrainingLogApi(int id) async {
+  final response = await buildHttpResponse(
+    'training-logs/$id',
     method: HttpMethod.DELETE,
   );
 

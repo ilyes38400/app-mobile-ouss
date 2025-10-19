@@ -41,6 +41,7 @@ import '../utils/app_common.dart';
 import '../utils/app_images.dart';
 import 'WeeklyQuestionnaireScreen.dart';
 import 'competition_feedback_screen.dart';
+import 'training_log_screen.dart';
 import 'home_weight_section.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -508,17 +509,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               contentPadding: EdgeInsets.all(16),
                               leading: Icon(Icons.book, color: Colors.white),
                               title: Text(
-                                "Carnet d'entraînement mensuel",
+                                "Carnet d'entraînement",
                                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
-                                "Objectifs techniques, tactiques, physiques et mentaux",
+                                "Enregistrez vos séances d'entraînement",
                                 style: TextStyle(color: Colors.white70),
                               ),
-                              trailing: Icon(Icons.lock, color: Colors.white70),
+                              trailing: Icon(Icons.arrow_forward_ios, color: Colors.white),
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Fonctionnalité en développement")),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TrainingLogScreen(),
+                                  ),
                                 );
                               },
                             ),
